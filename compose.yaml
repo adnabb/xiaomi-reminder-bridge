@@ -1,0 +1,11 @@
+services:
+  home-assistant:
+    container_name: xiaomi-capability-ha
+    image: ghcr.io/home-assistant/home-assistant:stable
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8123:8123"
+    volumes:
+      - ./home-assistant-config:/config
+    environment:
+      TZ: Asia/Shanghai

@@ -1,0 +1,6 @@
+home-assistant-config/
+.venv-ha*/
+.env.local
+node_modules/
+.DS_Store
+.idea/

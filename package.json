@@ -1,0 +1,11 @@
+{
+  "name": "xiaomi-reminder-bridge",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "ha:ensure": "node --env-file=.env.local scripts/ensure-home-assistant.mjs",
+    "ha:stop": "node scripts/stop-home-assistant.mjs",
+    "reminder": "node --env-file=.env.local scripts/xiaomi-directive.mjs",
+    "test": "node --test"
+  }
+}
