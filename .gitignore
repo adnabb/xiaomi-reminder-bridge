@@ -1,6 +1,14 @@
 home-assistant-config/
 .venv-ha*/
-.env.local
 node_modules/
+coverage/
+
+.env*
+!.env.example
+*.key
+*.pem
+*.log
+
 .DS_Store
 .idea/
+.vscode/

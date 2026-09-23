@@ -124,7 +124,12 @@ npm test
 - [安装与配置](docs/setup.md)
 - [工作原理与安全边界](docs/architecture.md)
 - [L15A 验证记录](docs/l15a-validation.md)
+- [安全策略](SECURITY.md)
 
 ## 敏感数据
 
 `.env.local` 和 `home-assistant-config/` 都被 Git 忽略，前者保存访问令牌，后者可能包含小米 OAuth token、Home Assistant 认证信息、证书和历史数据。不要上传、复制或分享它们。
+
+## 许可证
+
+[MIT](LICENSE)

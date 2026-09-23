@@ -1,7 +1,13 @@
 {
   "name": "xiaomi-reminder-bridge",
+  "version": "1.0.0",
+  "description": "通过 Home Assistant 向小米 AI 音箱发送原生提醒指令",
   "private": true,
+  "license": "MIT",
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "ha:ensure": "node --env-file=.env.local scripts/ensure-home-assistant.mjs",
     "ha:stop": "node scripts/stop-home-assistant.mjs",
