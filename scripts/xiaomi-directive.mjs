@@ -2,6 +2,7 @@
 
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { isEntityAvailable } from './home-assistant-state.mjs';
 
 const USAGE = `用法：
   npm run reminder -- --check
@@ -86,7 +87,7 @@ export async function run({
     return 2;
   }
 
-  if (options.check) {
+  if (options.check || options.send) {
     if (!env.HA_TOKEN) {
       stderr('缺少 HA_TOKEN；未发起检查。');
       return 2;
@@ -108,8 +109,15 @@ export async function run({
       stderr(`只读检查失败：HTTP ${response.status}`);
       return 1;
     }
-    stdout(`只读检查通过：${entityId}`);
-    return 0;
+    const entity = await response.json().catch(() => null);
+    if (!isEntityAvailable(entity, entityId)) {
+      stderr(`小爱执行实体不可用（状态：${entity?.state ?? '无有效状态'}）；请检查小米集成和容器 DNS。未发送指令。`);
+      return 1;
+    }
+    if (options.check) {
+      stdout(`只读检查通过：${entityId}（实体已加载且可用）`);
+      return 0;
+    }
   }
 
   let request;
@@ -131,11 +139,6 @@ export async function run({
   if (!options.send) {
     stdout('如需实际发送，请在确认内容后显式增加 --send。');
     return 0;
-  }
-
-  if (!env.HA_TOKEN) {
-    stderr('缺少 HA_TOKEN；未发送任何请求。');
-    return 2;
   }
 
   let response;
@@ -160,7 +163,25 @@ export async function run({
     return 1;
   }
 
-  stdout('Home Assistant 已接受指令。');
+  // 服务接口可能跳过不可用实体并返回 HTTP 200，须核对执行实体状态。
+  try {
+    const stateResponse = await fetchImpl(
+      `${haUrl}/api/states/${encodeURIComponent(entityId)}`,
+      {
+        headers: { Authorization: `Bearer ${env.HA_TOKEN}` },
+        signal: AbortSignal.timeout(10_000)
+      }
+    );
+    const entity = stateResponse.ok ? await stateResponse.json() : null;
+    if (!isEntityAvailable(entity, entityId) || entity.state !== request.value) {
+      throw new Error('执行实体未更新为本次指令');
+    }
+  } catch {
+    stderr('Home Assistant 已返回成功，但无法确认执行实体已更新；可能已发送，请核对小爱记录，勿自动重试。');
+    return 1;
+  }
+
+  stdout('Home Assistant 执行实体已更新；小爱是否创建提醒仍需核对对话记录或闹钟列表。');
   return 0;
 }
 

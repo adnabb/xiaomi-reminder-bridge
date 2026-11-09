@@ -4,6 +4,7 @@ import { execFile as execFileCallback } from 'node:child_process';
 import { resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { isEntityAvailable } from './home-assistant-state.mjs';
 
 const execFileDefault = promisify(execFileCallback);
 const PROJECT_DIR = resolve(fileURLToPath(new URL('..', import.meta.url)));
@@ -29,7 +30,10 @@ async function checkHomeAssistant({ env, fetchImpl }) {
       }
     );
     if (response.ok) {
-      return 'ready';
+      const entity = await response.json().catch(() => null);
+      return isEntityAvailable(entity, env.HA_XIAOMI_ENTITY_ID)
+        ? 'ready'
+        : 'entity-unavailable';
     }
     if (response.status === 401 || response.status === 403) {
       return 'auth-error';
@@ -67,6 +71,10 @@ export async function ensureHomeAssistant({
   }
   if (initialStatus === 'auth-error') {
     stderr('Home Assistant 拒绝认证，请更新 HA_TOKEN；未启动服务，也未发送提醒。');
+    return 1;
+  }
+  if (initialStatus === 'entity-unavailable') {
+    stderr('Home Assistant 可连接，但小爱执行实体不可用；请检查小米集成状态和容器 DNS。未启动服务，也未发送提醒。');
     return 1;
   }
 
@@ -110,7 +118,7 @@ export async function ensureHomeAssistant({
     await sleep(intervalMs);
   }
 
-  stderr(`Home Assistant 在 ${Math.round(timeoutMs / 1000)} 秒内未就绪；未发送提醒。`);
+  stderr(`Home Assistant 的小爱执行实体在 ${Math.round(timeoutMs / 1000)} 秒内未就绪；未发送提醒。`);
   return 1;
 }
 
