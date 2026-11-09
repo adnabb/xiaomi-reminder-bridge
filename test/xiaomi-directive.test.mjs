@@ -135,9 +135,30 @@ for (const entity of [
   }
 }
 
-test('服务返回 HTTP 200 但实体未更新时报告结果不确定，不重发', async () => {
+test('服务返回 HTTP 200 但实体变为不可用时报告结果不确定，不重发', async () => {
   const methods = [];
   const errors = [];
+  const output = [];
+  const exitCode = await run({
+    argv: ['--send', '今天晚上八点提醒我吃药'],
+    env: ENV,
+    fetchImpl: async (_url, init) => {
+      methods.push(init.method || 'GET');
+      return new Response(JSON.stringify(init.method === 'POST' ? [] : {
+        ...READY, state: methods.length > 1 ? 'unavailable' : ''
+      }));
+    },
+    stdout: (line) => output.push(line),
+    stderr: (line) => errors.push(line)
+  });
+  assert.equal(exitCode, 1);
+  assert.deepEqual(methods, ['GET', 'POST', 'GET']);
+  assert.match(errors.join('\n'), /可能已发送.*勿自动重试/);
+  assert.doesNotMatch(output.join('\n'), /调用完成/);
+});
+
+test('动作成功但不刷新文本状态时不误报失败，也不声称闹钟已创建', async () => {
+  const methods = [];
   const output = [];
   const exitCode = await run({
     argv: ['--send', '今天晚上八点提醒我吃药'],
@@ -147,12 +168,12 @@ test('服务返回 HTTP 200 但实体未更新时报告结果不确定，不重�
       return new Response(JSON.stringify(init.method === 'POST' ? [] : READY));
     },
     stdout: (line) => output.push(line),
-    stderr: (line) => errors.push(line)
+    stderr: () => {}
   });
-  assert.equal(exitCode, 1);
+  assert.equal(exitCode, 0);
   assert.deepEqual(methods, ['GET', 'POST', 'GET']);
-  assert.match(errors.join('\n'), /可能已发送.*勿自动重试/);
-  assert.doesNotMatch(output.join('\n'), /执行实体已更新/);
+  assert.match(output.join('\n'), /调用完成.*仍需核对/);
+  assert.doesNotMatch(output.join('\n'), /已创建|创建成功|实体已更新/);
 });
 
 test('服务拒绝请求时停止，不报告成功', async () => {

@@ -163,7 +163,8 @@ export async function run({
     return 1;
   }
 
-  // 服务接口可能跳过不可用实体并返回 HTTP 200，须核对执行实体状态。
+  // 服务接口可能跳过不可用实体并返回 HTTP 200，须核对实体仍可用。
+  // Xiaomi Home 的 ActionText 在动作返回空列表时不刷新文本状态，不能据此判断失败。
   try {
     const stateResponse = await fetchImpl(
       `${haUrl}/api/states/${encodeURIComponent(entityId)}`,
@@ -173,15 +174,15 @@ export async function run({
       }
     );
     const entity = stateResponse.ok ? await stateResponse.json() : null;
-    if (!isEntityAvailable(entity, entityId) || entity.state !== request.value) {
-      throw new Error('执行实体未更新为本次指令');
+    if (!isEntityAvailable(entity, entityId)) {
+      throw new Error('执行实体不再可用');
     }
   } catch {
-    stderr('Home Assistant 已返回成功，但无法确认执行实体已更新；可能已发送，请核对小爱记录，勿自动重试。');
+    stderr('Home Assistant 已返回成功，但无法确认执行实体仍可用；可能已发送，请核对小爱记录，勿自动重试。');
     return 1;
   }
 
-  stdout('Home Assistant 执行实体已更新；小爱是否创建提醒仍需核对对话记录或闹钟列表。');
+  stdout('Home Assistant 调用完成，执行实体保持可用；小爱是否创建提醒仍需核对对话记录或闹钟列表。');
   return 0;
 }
 
