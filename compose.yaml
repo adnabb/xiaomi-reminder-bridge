@@ -3,6 +3,9 @@ services:
     container_name: xiaomi-capability-ha
     image: ghcr.io/home-assistant/home-assistant:stable
     restart: unless-stopped
+    dns:
+      - 223.5.5.5
+      - 119.29.29.29
     ports:
       - "127.0.0.1:8123:8123"
     volumes:
